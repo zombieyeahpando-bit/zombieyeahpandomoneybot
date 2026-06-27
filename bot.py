@@ -10,13 +10,19 @@ bot = telebot.TeleBot(TOKEN)
 # Временная база данных в памяти бота
 user_data = {}
 
+# Словарь для перевода месяцев на русский язык
+RU_MONTHS = {
+    1: "января", 2: "февраля", 3: "марта", 4: "апреля", 5: "мая", 6: "июня",
+    7: "июля", 8: "августа", 9: "сентября", 10: "октября", 11: "ноября", 12: "декабря"
+}
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     chat_id = message.chat.id
     user_data[chat_id] = {}
     
     welcome_text = (
-        "👋 Привет! Я твой продвинутый финансовый тренер.\n\n"
+        "👋 Привет! Я твой продвинутый financial тренер.\n\n"
         "Давай настроим твою систему ватерлинии.\n"
         "1️⃣ Напиши дату твоей следующей зарплаты в формате ДД.ММ.ГГГГ\n"
         "*(Например: 15.07.2026)*"
@@ -26,8 +32,15 @@ def send_welcome(message):
 
 def process_date_step(message):
     chat_id = message.chat.id
+    
+    if message.text.strip() == '/start':
+        send_welcome(message)
+        return
+        
     try:
         target_date = datetime.datetime.strptime(message.text.strip(), "%d.%m.%Y").date()
+        
+        # ВОТ ЭТОЙ СТРОЧКИ НЕ ХВАТАЛО (ЧИНИМ БАГ):
         today = datetime.date.today()
         
         if target_date <= today:
@@ -45,6 +58,11 @@ def process_date_step(message):
 
 def process_amount_step(message):
     chat_id = message.chat.id
+    
+    if message.text.strip() == '/start':
+        send_welcome(message)
+        return
+        
     try:
         amount_text = message.text.replace(",", ".")
         start_sum = float(amount_text)
@@ -72,7 +90,7 @@ def process_amount_step(message):
         bot.send_message(chat_id, success_text, parse_mode='Markdown')
         
     except ValueError:
-        msg = bot.send_message(chat_id, "❌ Вводи только числа. Сколько сейчас на карте (например, 590)?")
+        msg = bot.reply_to(message, "❌ Вводи только числа. Сколько сейчас на карте (например, 590)?")
         bot.register_next_step_handler(msg, process_amount_step)
 
 @bot.message_handler(func=lambda message: True)
@@ -107,7 +125,10 @@ def check_balance(message):
         
         diff = round(current_balance - ideal_balance_today, 2)
         
-        response = f"📅 *Сегодня:* {today.strftime('%d %B')} (Осталось дней: {days_left_today})\n"
+        # Делаем красивую русскую дату (например: 27 июня)
+        ru_date_str = f"{today.day} {RU_MONTHS[today.month]}"
+        
+        response = f"📅 *Сегодня:* {ru_date_str} (Осталось дней: {days_left_today})\n"
         response += f"📉 *Ватерлиния на ЭТОТ вечер:* {ideal_balance_today} BYN\n"
         response += "—" * 15 + "\n"
         
