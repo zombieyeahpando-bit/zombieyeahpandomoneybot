@@ -72,7 +72,7 @@ def process_amount_step(message):
         bot.send_message(chat_id, success_text, parse_mode='Markdown')
         
     except ValueError:
-        msg = bot.reply_to(message, "❌ Вводи только числа. Сколько сейчас на карте?")
+        msg = bot.send_message(chat_id, "❌ Вводи только числа. Сколько сейчас на карте (например, 590)?")
         bot.register_next_step_handler(msg, process_amount_step)
 
 @bot.message_handler(func=lambda message: True)
